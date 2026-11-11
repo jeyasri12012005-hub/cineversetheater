@@ -1,0 +1,6 @@
+{
+  "name": "CINEVERSE - Premium Cinema Ticket Booking",
+  "description": "The World of Cinema, Beyond Imagination. Book movie tickets for the ultimate cinematic experience at CINEVERSE, South Veli, Madurai.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
