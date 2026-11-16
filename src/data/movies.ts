@@ -21,7 +21,7 @@ export const MOVIES: Movie[] = [
     language: 'Tamil',
     genre: 'Devotional Fantasy / Comedy',
     duration: '2h 20m',
-    status: 'COMING SOON',
+    status: 'NOW SHOWING',
     poster: 'https://msagdwggbnuysrbwngoc.supabase.co/storage/v1/object/public/Cineverse-theater-images/now%20showing%20movie%20img/Mookuthi%20amman2.jpeg',
     certificate: 'U',
     director: 'Sundar C',
