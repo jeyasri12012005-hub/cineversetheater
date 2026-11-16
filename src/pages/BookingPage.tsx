@@ -34,22 +34,32 @@ export const BookingPage: React.FC<BookingPageProps> = ({
   // Booking Flow Steps State
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(selectedMovieFromHome || null);
 
-  // Generate next 6 dates starting today
-  const availableDates = useMemo(() => {
-    const dates = [];
-    const today = new Date();
-    for (let i = 0; i < 6; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() + i);
-      const dayName = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-US', { weekday: 'short' });
-      const formattedDate = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
-      const fullDate = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      dates.push({ id: `d-${i}`, label: dayName, sub: formattedDate, fullDate });
-    }
-    return dates;
-  }, []);
+  // Full Month Calendar Navigation State
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  const [selectedDate, setSelectedDate] = useState<string>(availableDates[0].fullDate);
+  const getDaysInMonth = (year: number, month: number) => {
+    const date = new Date(year, month, 1);
+    const days = [];
+    while (date.getMonth() === month) {
+      days.push(new Date(date));
+      date.setDate(date.getDate() + 1);
+    }
+    return days;
+  };
+
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const monthName = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const daysInMonth = useMemo(() => getDaysInMonth(year, month), [year, month]);
+
+  const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
+  const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
+
+  // Default selected date initialized to today's full date string
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  );
+
   const [selectedTime, setSelectedTime] = useState<ShowTime>(SHOW_TIMES[2]); // Default 06:45 PM
   const [selectedScreen, setSelectedScreen] = useState<TheatreScreen>(THEATRE_SCREENS[0]);
 
@@ -83,10 +93,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
   }, [activeFilter]);
 
   // 2D Cinema Seats Layout Definition
-  // Rows:
-  // Executive: A, B, C (10 seats each, ₹150)
-  // Premium: D, E, F, G (12 seats each, ₹220)
-  // VIP Recliner: H, J (8 seats each, ₹350)
   const seatLayout = useMemo(() => {
     const rows = [
       { row: 'A', tier: 'Executive' as const, seats: 10, price: SEAT_PRICES.Executive },
@@ -197,7 +203,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
 
     setFormErrors({});
 
-    // Generate unique booking reference (e.g. CV-784291)
     const randomCode = Math.floor(100000 + Math.random() * 900000);
     const bookingRef = `CV-${randomCode}`;
 
@@ -219,20 +224,18 @@ export const BookingPage: React.FC<BookingPageProps> = ({
       bookingTimestamp: new Date().toLocaleString()
     };
 
-    // Save to localStorage for demo persistence
     try {
       const existing = JSON.parse(localStorage.getItem('cineverse_bookings') || '[]');
       existing.unshift(newBooking);
       localStorage.setItem('cineverse_bookings', JSON.stringify(existing));
     } catch {
-      // safe fallback if storage unavailable
+      // safe fallback
     }
 
     setConfirmedBooking(newBooking);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Reset booking to start over
   const handleResetBooking = () => {
     setConfirmedBooking(null);
     setSelectedSeatIds([]);
@@ -241,7 +244,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
     setFormErrors({});
   };
 
-  // Open WhatsApp with all selected booking details pre-filled
   const handleBookViaWhatsApp = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!selectedMovie) {
@@ -275,12 +277,8 @@ export const BookingPage: React.FC<BookingPageProps> = ({
   return (
     <div className="w-full min-h-screen py-10 bg-[#080808] text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* ========================================================
-            VIEW: BOOKING CONFIRMATION SCREEN (STEP 8)
-            ======================================================== */}
         {confirmedBooking ? (
           <div className="max-w-3xl mx-auto animate-in zoom-in-95 duration-300">
-            {/* Header Badge */}
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 mb-4 shadow-[0_0_25px_rgba(34,197,94,0.3)]">
                 <CheckCircle2 className="w-10 h-10" />
@@ -293,9 +291,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
               </p>
             </div>
 
-            {/* The Ticket Pass Card */}
             <div className="bg-[#120609] border-2 border-[#D4AF37] rounded-2xl overflow-hidden shadow-[0_15px_40px_rgba(58,7,21,0.8)] relative">
-              {/* Gold Top Banner */}
               <div className="bg-gradient-to-r from-[#D4AF37] via-[#F3DE8A] to-[#AA820A] px-6 py-4 flex items-center justify-between text-black">
                 <div className="flex items-center gap-2">
                   <Ticket className="w-5 h-5" />
@@ -313,10 +309,8 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                 </div>
               </div>
 
-              {/* Ticket Body */}
               <div className="p-6 sm:p-8 space-y-6">
                 <div className="flex flex-col sm:flex-row gap-6 items-start">
-                  {/* Movie Poster Thumbnail */}
                   {confirmedBooking.movie.poster ? (
                     <img
                       src={confirmedBooking.movie.poster}
@@ -331,7 +325,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                     </div>
                   )}
 
-                  {/* Movie & Showtime Specs */}
                   <div className="flex-1 space-y-3">
                     <div className="flex items-center gap-2 text-xs text-neutral-400">
                       <span className="text-[#D4AF37] font-bold">{confirmedBooking.movie.language}</span>
@@ -364,14 +357,12 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                   </div>
                 </div>
 
-                {/* Perforation Divider */}
                 <div className="relative py-2">
                   <div className="border-t-2 border-dashed border-[#3A0715]" />
                   <div className="absolute -left-10 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#080808]" />
                   <div className="absolute -right-10 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#080808]" />
                 </div>
 
-                {/* Seats & Customer Details */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-[#18090d] p-5 rounded-xl border border-[#3A0715]">
                   <div>
                     <span className="text-xs uppercase tracking-wider text-neutral-400 block mb-1">
@@ -400,7 +391,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                   </div>
                 </div>
 
-                {/* Amount Paid */}
                 <div className="flex items-center justify-between pt-2 border-t border-neutral-800">
                   <div>
                     <span className="text-xs text-neutral-400 block">Total Amount Paid</span>
@@ -413,7 +403,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                   </div>
                 </div>
 
-                {/* Simulated Booking Notice */}
                 <div className="bg-amber-950/40 border border-amber-600/40 rounded-lg p-3 text-xs text-amber-200 flex items-start gap-2.5">
                   <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                   <div>
@@ -421,7 +410,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                   </div>
                 </div>
 
-                {/* Cinema Location Stamp */}
                 <div className="text-center text-xs text-neutral-400 pt-2">
                   <p className="font-semibold text-white">CINEVERSE CINEMAS</p>
                   <p>South Veli, Madurai – 625001 · Phone: 9751331659</p>
@@ -429,7 +417,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
               </div>
             </div>
 
-            {/* Confirmation Actions */}
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 onClick={() => window.print()}
@@ -456,19 +443,15 @@ export const BookingPage: React.FC<BookingPageProps> = ({
             </div>
           </div>
         ) : (
-          /* ========================================================
-              VIEW: INTERACTIVE 8-STEP TICKET BOOKING FLOW
-              ======================================================== */
           <div className="space-y-12">
-            {/* Page Header */}
             <div className="border-b border-[#3A0715] pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#D4AF37] mb-2">
                   <Ticket className="w-4 h-4" />
-                  <span>Box Office Portal</span>
+                  <span>Box Office Portal[cite: 14]</span>
                 </div>
                 <h1 className="font-serif-brand text-3xl sm:text-5xl font-black text-white">
-                  TICKET BOOKING
+                  TICKET BOOKING[cite: 14]
                 </h1>
                 <p className="text-sm text-neutral-400 mt-2">
                   Select your film, showtime, and preferred seating across our 3 luxury screens.
@@ -489,12 +472,8 @@ export const BookingPage: React.FC<BookingPageProps> = ({
               )}
             </div>
 
-            {/* ========================================================
-                STEP 1: SELECT MOVIE (WHEN NO MOVIE IS SELECTED)
-                ======================================================== */}
             {!selectedMovie ? (
               <div className="space-y-8 animate-in fade-in duration-300">
-                {/* Movie Filter Tabs (Button / Segmented controls per frontend-design rules) */}
                 <div className="flex items-center justify-between flex-wrap gap-4">
                   <div className="flex items-center gap-1.5 p-1 bg-[#120508] border border-[#3A0715] rounded-lg">
                     {(['All Movies', 'Tamil', 'English', 'Horror'] as MovieFilter[]).map((filter) => (
@@ -517,7 +496,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                   </span>
                 </div>
 
-                {/* Movie Cards Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   {filteredMovies.map((movie) => (
                     <MovieCard
@@ -532,11 +510,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                 </div>
               </div>
             ) : (
-              /* ========================================================
-                  STEPS 2 THROUGH 7: CONFIGURE DATE, TIME, SCREEN & SEATS
-                  ======================================================== */
               <div className="space-y-10 animate-in fade-in duration-300">
-                {/* Selected Movie Spotlight Banner */}
                 <div className="bg-gradient-to-r from-[#24060e] via-[#120407] to-[#080808] border border-[#3A0715] rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
                   <div className="flex items-center gap-5">
                     {selectedMovie.poster ? (
@@ -576,40 +550,77 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                   </button>
                 </div>
 
-                {/* STEP 2: SELECT DATE */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
-                    <span className="w-5 h-5 rounded-full bg-[#3A0715] border border-[#D4AF37] flex items-center justify-center text-[10px]">
-                      2
-                    </span>
-                    <span>Select Date</span>
+                {/* ========================================================
+                    STEP 2: FULL MONTH INTERACTIVE CALENDAR DATE SELECTOR
+                    ======================================================== */}
+                <div className="space-y-4 bg-slate-950/80 border border-[#3A0715] p-6 rounded-2xl shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
+                      <span className="w-5 h-5 rounded-full bg-[#3A0715] border border-[#D4AF37] flex items-center justify-center text-[10px]">
+                        2
+                      </span>
+                      <span>Select Date (Full Month Calendar)</span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <button 
+                        onClick={prevMonth}
+                        className="px-3 py-1.5 bg-[#120508] hover:bg-[#3A0715] text-[#D4AF37] rounded-lg border border-[#3A0715] text-xs font-bold transition cursor-pointer"
+                      >
+                        &larr; Prev
+                      </button>
+                      <span className="font-serif-brand text-sm font-bold tracking-wider text-[#D4AF37]">
+                        {monthName}
+                      </span>
+                      <button 
+                        onClick={nextMonth}
+                        className="px-3 py-1.5 bg-[#120508] hover:bg-[#3A0715] text-[#D4AF37] rounded-lg border border-[#3A0715] text-xs font-bold transition cursor-pointer"
+                      >
+                        Next &rarr;
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                    {availableDates.map((dateObj) => (
-                      <button
-                        key={dateObj.id}
-                        onClick={() => setSelectedDate(dateObj.fullDate)}
-                        className={`p-3.5 rounded-xl text-center border transition-all cursor-pointer ${
-                          selectedDate === dateObj.fullDate
-                            ? 'bg-[#3A0715] border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.3)]'
-                            : 'bg-[#0f070a] border-neutral-800 hover:border-neutral-700 text-neutral-300'
-                        }`}
-                      >
-                        <span className="text-xs font-semibold block text-neutral-400">
-                          {dateObj.label}
-                        </span>
-                        <span className="font-serif-brand font-bold text-base text-white block mt-0.5">
-                          {dateObj.sub}
-                        </span>
-                      </button>
-                    ))}
+                  {/* Weekdays Header */}
+                  <div className="grid grid-cols-7 gap-2 text-center text-xs text-neutral-400 font-semibold pt-2">
+                    <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+                  </div>
+
+                  {/* Days Grid */}
+                  <div className="grid grid-cols-7 gap-2">
+                    {daysInMonth.map((dayDate, idx) => {
+                      const fullDateString = dayDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                      const isSelected = selectedDate === fullDateString;
+                      const isToday = new Date().toDateString() === dayDate.toDateString();
+
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => setSelectedDate(fullDateString)}
+                          className={`p-3 rounded-xl flex flex-col items-center justify-center text-xs font-bold transition-all duration-300 cursor-pointer ${
+                            isSelected
+                              ? 'bg-gradient-to-tr from-[#AA820A] via-[#D4AF37] to-[#F3DE8A] text-black shadow-[0_0_20px_rgba(212,175,55,0.7)] scale-105 border border-amber-200 font-black'
+                              : isToday
+                              ? 'bg-[#3A0715] text-[#D4AF37] border border-[#D4AF37]/60 shadow-[0_0_10px_rgba(212,175,55,0.3)]'
+                              : 'bg-[#0f070a]/80 hover:bg-[#1a0c10] text-neutral-300 border border-neutral-800'
+                          }`}
+                        >
+                          <span className="text-sm font-serif-brand">{dayDate.getDate()}</span>
+                          <span className="text-[9px] opacity-70 font-normal uppercase">
+                            {dayDate.toLocaleString('default', { weekday: 'short' })}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  <div className="text-xs text-neutral-400 pt-1 text-center font-mono-nums">
+                    Selected Date: <strong className="text-[#D4AF37]">{selectedDate}</strong>
                   </div>
                 </div>
 
                 {/* STEP 3 & STEP 4: SHOW TIME & THEATRE SCREEN */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* STEP 3: SHOW TIME */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
                       <span className="w-5 h-5 rounded-full bg-[#3A0715] border border-[#D4AF37] flex items-center justify-center text-[10px]">
@@ -643,7 +654,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                     </div>
                   </div>
 
-                  {/* STEP 4: THEATRE SCREEN */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
                       <span className="w-5 h-5 rounded-full bg-[#3A0715] border border-[#D4AF37] flex items-center justify-center text-[10px]">
@@ -658,7 +668,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                           key={sc.id}
                           onClick={() => {
                             setSelectedScreen(sc);
-                            setSelectedSeatIds([]); // Clear seats when screen changes
+                            setSelectedSeatIds([]);
                           }}
                           className={`w-full p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
                             selectedScreen.id === sc.id
@@ -684,7 +694,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                 </div>
 
                 {/* ========================================================
-                    STEP 5: SEAT SELECTION (2D CINEMA SEAT LAYOUT)
+                    STEP 5: ULTRA-LUXURY MULTIPLEX SEAT LAYOUT
                     ======================================================== */}
                 <div className="space-y-6 pt-4 border-t border-[#3A0715]/60">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -692,54 +702,49 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                       <span className="w-5 h-5 rounded-full bg-[#3A0715] border border-[#D4AF37] flex items-center justify-center text-[10px]">
                         5
                       </span>
-                      <span>Seat Selection (Interactive 2D Cinema Layout)</span>
+                      <span>Seat Selection (Ultra-Luxury Multiplex Tier Layout)</span>
                     </div>
 
-                    {/* Color Status Legend as explicitly specified in prompt:
-                        - Available Seats – Green
-                        - Selected Seats – Gold
-                        - Booked Seats – Red */}
-                    <div className="flex items-center gap-4 text-xs">
+                    <div className="flex items-center gap-6 text-xs bg-slate-900/80 py-2 px-4 rounded-xl border border-slate-800">
                       <div className="flex items-center gap-2">
-                        <span className="w-3.5 h-3.5 rounded bg-[#22C55E] border border-green-400 shadow-[0_0_6px_rgba(34,197,94,0.6)]" />
+                        <span className="w-4 h-4 rounded-lg bg-slate-900 border border-slate-700 shadow-sm" />
                         <span className="text-neutral-300">Available</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="w-3.5 h-3.5 rounded bg-[#D4AF37] border border-amber-200 shadow-[0_0_8px_rgba(212,175,55,0.8)]" />
-                        <span className="text-neutral-300 font-semibold">Selected</span>
+                        <span className="w-4 h-4 rounded-lg bg-gradient-to-tr from-[#AA820A] via-[#D4AF37] to-[#F3DE8A] shadow-[0_0_12px_rgba(212,175,55,0.8)] border border-amber-200" />
+                        <span className="text-[#D4AF37] font-bold">Selected</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="w-3.5 h-3.5 rounded bg-[#EF4444] border border-red-600 opacity-80" />
-                        <span className="text-neutral-400">Booked</span>
+                        <span className="w-4 h-4 rounded-lg bg-slate-950 border border-slate-900 opacity-40 line-through" />
+                        <span className="text-neutral-500">Booked</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* 2D Cinema Auditorium Viewport */}
-                  <div className="bg-[#0b0407] border border-[#3A0715] rounded-2xl p-6 sm:p-10 flex flex-col items-center overflow-x-auto shadow-2xl">
-                    {/* Screen Indicator at top */}
+                  {/* Ultra-Luxury Cinema Auditorium Viewport */}
+                  <div className="bg-[#0b0407] border border-[#D4AF37]/30 rounded-3xl p-6 sm:p-10 flex flex-col items-center overflow-x-auto shadow-2xl relative">
                     <div className="w-full max-w-xl mb-12 text-center flex flex-col items-center">
-                      <div className="w-full h-2.5 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent rounded-full shadow-[0_0_20px_#D4AF37] opacity-80" />
-                      <div className="w-3/4 h-1 bg-gradient-to-r from-transparent via-white to-transparent rounded-full mt-0.5 opacity-40" />
-                      <span className="text-[11px] uppercase tracking-[0.3em] text-[#D4AF37] font-semibold mt-3">
-                        CINEMA SCREEN · ALL EYES THIS WAY
+                      <div className="w-full h-3 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent rounded-full shadow-[0_0_30px_rgba(212,175,55,0.8)] mb-3 animate-pulse" />
+                      <span className="text-xs uppercase tracking-[0.4em] text-[#D4AF37] font-bold">
+                        SCREEN THIS WAY · DOLBY ATMOS 4K IMMERSION
                       </span>
                     </div>
 
-                    {/* Seating Tiers Grid */}
-                    <div className="space-y-6 w-full max-w-2xl min-w-[500px]">
+                    <div className="space-y-6 w-full max-w-3xl min-w-[550px]">
                       {/* VIP Recliner Tier */}
-                      <div className="border border-[#D4AF37]/30 bg-[#3A0715]/20 p-4 rounded-xl">
-                        <div className="flex items-center justify-between text-xs text-[#D4AF37] font-bold uppercase tracking-wider mb-3">
+                      <div className="bg-gradient-to-r from-[#1f070f] via-[#120408] to-[#1f070f] border border-[#D4AF37]/40 p-5 rounded-2xl shadow-xl backdrop-blur-md">
+                        <div className="flex items-center justify-between text-xs text-[#D4AF37] font-black uppercase tracking-widest mb-4 border-b border-[#3A0715] pb-2">
                           <span>VIP Recliner Tier</span>
-                          <span className="font-mono-nums">₹{SEAT_PRICES['VIP Recliner']} per seat</span>
+                          <span className="px-3 py-1 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 font-mono-nums">
+                            ₹{SEAT_PRICES['VIP Recliner']} per seat
+                          </span>
                         </div>
-                        <div className="space-y-2.5">
+                        <div className="space-y-3">
                           {seatLayout.rows
                             .filter((r) => r.tier === 'VIP Recliner')
                             .map((rowDef) => (
-                              <div key={rowDef.row} className="flex items-center justify-center gap-2">
-                                <span className="w-6 text-xs font-bold text-neutral-400 font-mono-nums">
+                              <div key={rowDef.row} className="flex items-center justify-center gap-3">
+                                <span className="w-6 text-xs font-black text-[#D4AF37] font-mono-nums">
                                   {rowDef.row}
                                 </span>
                                 <div className="flex items-center gap-2">
@@ -754,15 +759,16 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                                         onClick={() => toggleSeat(seatId)}
                                         disabled={isBooked}
                                         title={`${seatId} - VIP Recliner (₹${SEAT_PRICES['VIP Recliner']})`}
-                                        className={`w-8 h-8 rounded-md text-[11px] font-mono-nums font-bold flex items-center justify-center transition-all cursor-pointer ${
+                                        className={`px-3 py-2 rounded-xl text-xs font-mono-nums font-bold flex flex-col items-center justify-center transition-all duration-300 cursor-pointer min-w-[45px] ${
                                           isBooked
-                                            ? 'bg-[#EF4444] text-white opacity-40 cursor-not-allowed'
+                                            ? 'bg-slate-950/40 text-neutral-600 border border-slate-900 cursor-not-allowed opacity-30 line-through'
                                             : isSelected
-                                            ? 'bg-[#D4AF37] text-black ring-2 ring-amber-200 shadow-[0_0_12px_rgba(212,175,55,0.9)] scale-110'
-                                            : 'bg-[#22C55E] text-black hover:bg-emerald-400'
+                                            ? 'bg-gradient-to-tr from-[#AA820A] via-[#D4AF37] to-[#F3DE8A] text-slate-950 font-extrabold shadow-[0_0_20px_rgba(212,175,55,0.7)] border border-amber-200 scale-105'
+                                            : 'bg-slate-900 hover:bg-slate-800 text-neutral-300 border border-slate-700/80 hover:border-[#D4AF37]/60 hover:shadow-[0_0_12px_rgba(212,175,55,0.3)]'
                                         }`}
                                       >
-                                        {i + 1}
+                                        <span>{seatId}</span>
+                                        <span className="text-[9px] opacity-60 font-normal">₹{SEAT_PRICES['VIP Recliner']}</span>
                                       </button>
                                     );
                                   })}
@@ -773,20 +779,22 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                       </div>
 
                       {/* Premium Tier */}
-                      <div className="border border-neutral-800 bg-neutral-900/20 p-4 rounded-xl">
-                        <div className="flex items-center justify-between text-xs text-neutral-300 font-bold uppercase tracking-wider mb-3">
+                      <div className="bg-slate-900/60 border border-slate-800 p-5 rounded-2xl shadow-lg backdrop-blur-md">
+                        <div className="flex items-center justify-between text-xs text-neutral-300 font-bold uppercase tracking-wider mb-4 border-b border-slate-800 pb-2">
                           <span>Premium Tier</span>
-                          <span className="font-mono-nums text-[#D4AF37]">₹{SEAT_PRICES.Premium} per seat</span>
+                          <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 font-mono-nums text-[#D4AF37]">
+                            ₹{SEAT_PRICES.Premium} per seat
+                          </span>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2.5">
                           {seatLayout.rows
                             .filter((r) => r.tier === 'Premium')
                             .map((rowDef) => (
-                              <div key={rowDef.row} className="flex items-center justify-center gap-2">
+                              <div key={rowDef.row} className="flex items-center justify-center gap-3">
                                 <span className="w-6 text-xs font-bold text-neutral-400 font-mono-nums">
                                   {rowDef.row}
                                 </span>
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-2">
                                   {Array.from({ length: rowDef.seats }, (_, i) => {
                                     const seatId = `${rowDef.row}${i + 1}`;
                                     const isBooked = seatLayout.bookedList.includes(seatId);
@@ -798,15 +806,16 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                                         onClick={() => toggleSeat(seatId)}
                                         disabled={isBooked}
                                         title={`${seatId} - Premium (₹${SEAT_PRICES.Premium})`}
-                                        className={`w-7 h-7 rounded text-[10px] font-mono-nums font-bold flex items-center justify-center transition-all cursor-pointer ${
+                                        className={`px-3 py-2 rounded-xl text-xs font-mono-nums font-bold flex flex-col items-center justify-center transition-all duration-300 cursor-pointer min-w-[42px] ${
                                           isBooked
-                                            ? 'bg-[#EF4444] text-white opacity-40 cursor-not-allowed'
+                                            ? 'bg-slate-950/40 text-neutral-600 border border-slate-900 cursor-not-allowed opacity-30 line-through'
                                             : isSelected
-                                            ? 'bg-[#D4AF37] text-black ring-2 ring-amber-200 shadow-[0_0_12px_rgba(212,175,55,0.9)] scale-110'
-                                            : 'bg-[#22C55E] text-black hover:bg-emerald-400'
+                                            ? 'bg-gradient-to-tr from-[#AA820A] via-[#D4AF37] to-[#F3DE8A] text-slate-950 font-extrabold shadow-[0_0_20px_rgba(212,175,55,0.7)] border border-amber-200 scale-105'
+                                            : 'bg-slate-900 hover:bg-slate-800 text-neutral-300 border border-slate-700/80 hover:border-[#D4AF37]/50 hover:shadow-[0_0_10px_rgba(212,175,55,0.2)]'
                                         }`}
                                       >
-                                        {i + 1}
+                                        <span>{seatId}</span>
+                                        <span className="text-[9px] opacity-60 font-normal">₹{SEAT_PRICES.Premium}</span>
                                       </button>
                                     );
                                   })}
@@ -817,16 +826,18 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                       </div>
 
                       {/* Executive Tier */}
-                      <div className="border border-neutral-800 bg-neutral-900/10 p-4 rounded-xl">
-                        <div className="flex items-center justify-between text-xs text-neutral-400 font-bold uppercase tracking-wider mb-3">
+                      <div className="bg-slate-900/40 border border-slate-800/80 p-5 rounded-2xl shadow-lg backdrop-blur-md">
+                        <div className="flex items-center justify-between text-xs text-neutral-400 font-bold uppercase tracking-wider mb-4 border-b border-slate-800 pb-2">
                           <span>Executive Tier</span>
-                          <span className="font-mono-nums text-[#D4AF37]">₹{SEAT_PRICES.Executive} per seat</span>
+                          <span className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 font-mono-nums text-[#D4AF37]">
+                            ₹{SEAT_PRICES.Executive} per seat
+                          </span>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2.5">
                           {seatLayout.rows
                             .filter((r) => r.tier === 'Executive')
                             .map((rowDef) => (
-                              <div key={rowDef.row} className="flex items-center justify-center gap-2">
+                              <div key={rowDef.row} className="flex items-center justify-center gap-3">
                                 <span className="w-6 text-xs font-bold text-neutral-400 font-mono-nums">
                                   {rowDef.row}
                                 </span>
@@ -842,15 +853,16 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                                         onClick={() => toggleSeat(seatId)}
                                         disabled={isBooked}
                                         title={`${seatId} - Executive (₹${SEAT_PRICES.Executive})`}
-                                        className={`w-7 h-7 rounded text-[10px] font-mono-nums font-bold flex items-center justify-center transition-all cursor-pointer ${
+                                        className={`px-3 py-2 rounded-xl text-xs font-mono-nums font-bold flex flex-col items-center justify-center transition-all duration-300 cursor-pointer min-w-[42px] ${
                                           isBooked
-                                            ? 'bg-[#EF4444] text-white opacity-40 cursor-not-allowed'
+                                            ? 'bg-slate-950/40 text-neutral-600 border border-slate-900 cursor-not-allowed opacity-30 line-through'
                                             : isSelected
-                                            ? 'bg-[#D4AF37] text-black ring-2 ring-amber-200 shadow-[0_0_12px_rgba(212,175,55,0.9)] scale-110'
-                                            : 'bg-[#22C55E] text-black hover:bg-emerald-400'
+                                            ? 'bg-gradient-to-tr from-[#AA820A] via-[#D4AF37] to-[#F3DE8A] text-slate-950 font-extrabold shadow-[0_0_20px_rgba(212,175,55,0.7)] border border-amber-200 scale-105'
+                                            : 'bg-slate-900 hover:bg-slate-800 text-neutral-300 border border-slate-700/80 hover:border-[#D4AF37]/50 hover:shadow-[0_0_10px_rgba(212,175,55,0.2)]'
                                         }`}
                                       >
-                                        {i + 1}
+                                        <span>{seatId}</span>
+                                        <span className="text-[9px] opacity-60 font-normal">₹{SEAT_PRICES.Executive}</span>
                                       </button>
                                     );
                                   })}
@@ -862,7 +874,7 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                     </div>
 
                     {/* Selected Seats summary chip bar */}
-                    <div className="mt-8 pt-4 border-t border-neutral-800 w-full max-w-xl flex items-center justify-between flex-wrap gap-4 text-xs">
+                    <div className="mt-8 pt-4 border-t border-slate-800 w-full max-w-xl flex items-center justify-between flex-wrap gap-4 text-xs">
                       <div className="flex items-center gap-2">
                         <span className="text-neutral-400">Selected ({selectedSeatIds.length}):</span>
                         {selectedSeatIds.length > 0 ? (
@@ -897,7 +909,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                     STEPS 6 & 7: CUSTOMER DETAILS & BOOKING SUMMARY
                     ======================================================== */}
                 <form onSubmit={handleConfirmBooking} className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-6 border-t border-[#3A0715]">
-                  {/* STEP 6: CUSTOMER DETAILS */}
                   <div className="space-y-5 bg-[#0f070a] border border-[#3A0715] p-6 sm:p-8 rounded-2xl">
                     <div className="flex items-center gap-2 text-xs uppercase tracking-wider font-bold text-[#D4AF37]">
                       <span className="w-5 h-5 rounded-full bg-[#3A0715] border border-[#D4AF37] flex items-center justify-center text-[10px]">
@@ -907,7 +918,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                     </div>
 
                     <div className="space-y-4">
-                      {/* Customer Name */}
                       <div>
                         <label htmlFor={nameInputId} className="block text-xs font-semibold text-neutral-300 uppercase tracking-wider mb-1.5">
                           Customer Full Name *
@@ -928,7 +938,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                         )}
                       </div>
 
-                      {/* Mobile Number */}
                       <div>
                         <label htmlFor={mobileInputId} className="block text-xs font-semibold text-neutral-300 uppercase tracking-wider mb-1.5">
                           Mobile Number (10 Digits) *
@@ -950,7 +959,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                         )}
                       </div>
 
-                      {/* Number of Tickets (Auto-synced with seat selection) */}
                       <div>
                         <label className="block text-xs font-semibold text-neutral-300 uppercase tracking-wider mb-1.5">
                           Number of Tickets
@@ -970,7 +978,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                     </div>
                   </div>
 
-                  {/* STEP 7: BOOKING SUMMARY & STEP 8: CONFIRM BOOKING */}
                   <div className="space-y-5 bg-[#120609] border-2 border-[#3A0715] p-6 sm:p-8 rounded-2xl flex flex-col justify-between">
                     <div>
                       <div className="flex items-center gap-2 text-xs uppercase tracking-wider font-bold text-[#D4AF37] mb-4">
@@ -980,7 +987,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                         <span>Booking Summary</span>
                       </div>
 
-                      {/* Summary Breakdown Details */}
                       <div className="space-y-3 text-sm">
                         <div className="flex justify-between pb-2 border-b border-neutral-800">
                           <span className="text-neutral-400">Movie Title</span>
@@ -989,8 +995,8 @@ export const BookingPage: React.FC<BookingPageProps> = ({
 
                         <div className="flex justify-between pb-2 border-b border-neutral-800">
                           <span className="text-neutral-400">Date & Showtime</span>
-                          <span className="text-white text-right">
-                            {selectedDate.split(',')[0]} · {selectedTime.time}
+                          <span className="text-white text-right truncate max-w-[200px]">
+                            {selectedDate} · {selectedTime.time}
                           </span>
                         </div>
 
@@ -1006,7 +1012,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                           </span>
                         </div>
 
-                        {/* Tier pricing lines */}
                         {pricingBreakdown.tierBreakdown.map((t) => (
                           <div key={t.tier} className="flex justify-between text-xs text-neutral-400">
                             <span>{t.tier} ({t.count} × ₹{t.unitPrice})</span>
@@ -1026,7 +1031,6 @@ export const BookingPage: React.FC<BookingPageProps> = ({
                       </div>
                     </div>
 
-                    {/* Total & Action (Step 8) */}
                     <div className="pt-6 border-t border-neutral-800 space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
