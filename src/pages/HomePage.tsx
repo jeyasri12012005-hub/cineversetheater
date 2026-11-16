@@ -32,7 +32,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         {/* Cinematic Spider-Man Hero Background */}
         <div className="absolute inset-0 z-0">
           <img
-            src="/src/assets/images/hero_spiderman_night_1793944529422.jpg"
+            src="https://msagdwggbnuysrbwngoc.supabase.co/storage/v1/object/public/Cineverse-theater-images/theater-hero%20section-image.jpeg"
             alt="Spider-Man swinging between skyscrapers at night"
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover object-center scale-100 animate-in fade-in duration-1000"
